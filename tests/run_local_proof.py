@@ -199,6 +199,43 @@ def check_seed_and_views() -> tuple[dict, dict, list]:
           used == {"hot_pain", "curious", "endorse", "objection", "unrelated",
                    "ineligible"}, str(sorted(used)))
 
+    # -- the guards, exercised rather than assumed ------------------------
+
+    try:
+        campaign_db.record_reply("does-not-matter", "email", "positive")
+        check("record_reply rejects a value outside the six-value taxonomy",
+              False, "it accepted 'positive'")
+    except campaign_db.CampaignDBError as exc:
+        check("record_reply rejects a value outside the six-value taxonomy",
+              "hot_pain" in str(exc))
+
+    # The routing CHECK: a 10+ seat team can never be filed as too_small, and a
+    # 1-9 seat team can never be filed as anything else.
+    import sqlite3
+    try:
+        campaign_db.insert_lead({
+            "source": "ad", "market": "global", "locale": "en", "utm": {},
+            "company_name": "Constraint Test", "work_email": "c@test.example",
+            "team_size": "25-49", "email_client": "outlook",
+            "role": "other", "submitted_at": "2026-09-20T00:00:00+00:00",
+        }, stage="too_small")
+        check("leads CHECK rejects a 25-49 seat team filed as too_small", False,
+              "the row was accepted")
+    except sqlite3.IntegrityError:
+        check("leads CHECK rejects a 25-49 seat team filed as too_small", True)
+
+    # A replayed touch must keep its original sent_at, not move to today.
+    contact = client.select("contacts", limit=1)[0]
+    original = client.select("touches", eq={"contact_id": contact["id"],
+                                            "sequence_step": 1})[0]
+    campaign_db.log_touch(contact["id"], original["channel"],
+                          original["language"], sequence_step=1)
+    after = client.select("touches", eq={"contact_id": contact["id"],
+                                         "sequence_step": 1})[0]
+    check("a replayed log_touch keeps the original sent_at",
+          after["sent_at"] == original["sent_at"],
+          f"{original['sent_at']} -> {after['sent_at']}")
+
     return markets, channels, content
 
 
