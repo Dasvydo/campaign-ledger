@@ -1,4 +1,4 @@
-# AUDIT — Batch B (`campaign-ledger`)
+# AUDIT - Batch B (`campaign-ledger`)
 
 Phase 0, run 2026-09-03, unattended session, before any other file in this repo
 was created or changed.
@@ -14,17 +14,17 @@ What I actually checked, and what came back:
 | Check | Result |
 |---|---|
 | `find / -maxdepth 4 -type d -name supabase` | no `supabase/` directory anywhere on the container |
-| `.env` / `.env.*` files inside `/home/user/campaign-ledger` | none — repo held only a placeholder `README.md` and `.git` |
+| `.env` / `.env.*` files inside `/home/user/campaign-ledger` | none - repo held only a placeholder `README.md` and `.git` |
 | `supabase-architect` skill notes | no such skill installed. `/root/.claude/skills/` holds only `session-start-hook` and one synced skill bundle, neither Supabase-related |
 | The `outreach-engine` repo (where the DSD tables are described) | **out of bounds for this session.** The batch brief forbids reading sibling repos, so I did not open it. This is the single biggest reason the project ref cannot be confirmed here |
-| Session environment variables | `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are both set — see the finding below |
-| Reachability of `oqpeebtwtikdzorgouxd.supabase.co` | one unauthenticated request to the REST root returned HTTP `000` (no connection — egress blocked / host not resolvable from this container). No project was connected to, no credential was sent, no data was read |
+| Session environment variables | `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are both set - see the finding below |
+| Reachability of `oqpeebtwtikdzorgouxd.supabase.co` | one unauthenticated request to the REST root returned HTTP `000` (no connection - egress blocked / host not resolvable from this container). No project was connected to, no credential was sent, no data was read |
 
-### Finding 1 — the ambient credentials in this session point at the FORBIDDEN project
+### Finding 1 - the ambient credentials in this session point at the FORBIDDEN project
 
 `SUPABASE_URL` in this container resolves to project ref **`kngcxwcybozgqgnoweyt`**.
 
-That is the **product database (Frankfurt)** — the hard boundary. A matching
+That is the **product database (Frankfurt)** - the hard boundary. A matching
 `SUPABASE_SERVICE_ROLE_KEY` is also present in the environment.
 
 Consequences, all of which are handled in the build:
@@ -40,7 +40,7 @@ Consequences, all of which are handled in the build:
   points at `kngcxwcybozgqgnoweyt`.
 - Batches C, D and E import this client. The guard protects them too.
 
-### Finding 2 — the lead-pipeline project ref is unconfirmed
+### Finding 2 - the lead-pipeline project ref is unconfirmed
 
 The spec names `oqpeebtwtikdzorgouxd` as the existing lead-pipeline project that
 holds the DSD LinkedIn discovery data. Nothing inside this session can confirm
@@ -77,7 +77,7 @@ migration: `campaign.companies` carries a nullable, unconstrained
 `dsd_company_id uuid` column. It has no foreign key and no default. If Dovy
 confirms the DSD table and key type, a two-line follow-up migration can add the
 constraint. If the DSD key turns out not to be a `uuid`, the column is dropped
-and re-added — cheap, because it is empty.
+and re-added - cheap, because it is empty.
 
 This is the one place the schema carries a column the spec's column list does not
 name. It is called out again in `RUN-REPORT.md`.
@@ -99,7 +99,7 @@ hot_pain, curious, endorse, objection, unrelated, ineligible
 
 These become the Postgres enum `campaign.reply_sentiment`. No seventh value, no
 `null`-as-a-category, no parallel vocabulary, no renaming. `touches.reply_sentiment`
-is nullable — a touch with no reply yet has `NULL`, which is the absence of a
+is nullable - a touch with no reply yet has `NULL`, which is the absence of a
 classification rather than a class of its own.
 
 **Risk to check when landing:** if `outreach-engine` stores these as a different
@@ -116,7 +116,7 @@ casing or with different spelling, the enum will reject its writes. Logged in
 | No DSD foreign key, only a nullable `dsd_company_id` | DSD table shape unreadable from here |
 | Reply sentiment enum is exactly the six spec values | spec instruction, taken verbatim |
 | Client reads `SUPABASE_SERVICE_KEY`, refuses `kngcxwcybozgqgnoweyt` | ambient session credentials point at the product DB |
-| SQL is validated by local parse only, never applied | global rule 3 — Dovy runs migrations |
+| SQL is validated by local parse only, never applied | global rule 3 - Dovy runs migrations |
 | `companies.domain` is `NOT NULL` and lowercased | it is the natural key upserts de-duplicate on; a nullable unique column would let duplicates through (Postgres allows many `NULL`s in a unique index) |
 
 Nothing in this repo connects to any database at build time or at test time.

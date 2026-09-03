@@ -1,10 +1,10 @@
-# BLOCKED — Batch B (`campaign-ledger`)
+# BLOCKED - Batch B (`campaign-ledger`)
 
 Logged and continued past, per global rule 5. Nothing here stopped the batch.
 
 ---
 
-## B-1 — Target Supabase project could not be confirmed
+## B-1 - Target Supabase project could not be confirmed
 
 **Missing:** any way to confirm that project `oqpeebtwtikdzorgouxd` exists, is
 Dovy's, and is the one holding the DSD LinkedIn discovery data. No `supabase/`
@@ -15,7 +15,7 @@ notes, and `outreach-engine` is out of bounds for this session.
 `campaign`, exactly as the spec names it. Did **not** guess an alternative and did
 **not** fall back to the product project.
 
-**Blocks:** running the migrations. Nothing else — the client, the brief, the seed
+**Blocks:** running the migrations. Nothing else - the client, the brief, the seed
 and the local proof all work without it.
 
 **To unblock (Dovy, ~1 min):** open the Supabase dashboard, confirm
@@ -24,10 +24,10 @@ in that project's SQL editor.
 
 ---
 
-## B-2 — Session credentials point at the FORBIDDEN product database
+## B-2 - Session credentials point at the FORBIDDEN product database
 
 **What happened:** this container's `SUPABASE_URL` resolves to project ref
-`kngcxwcybozgqgnoweyt` — the product database (Frankfurt), the hard boundary. A
+`kngcxwcybozgqgnoweyt` - the product database (Frankfurt), the hard boundary. A
 matching `SUPABASE_SERVICE_ROLE_KEY` is set alongside it.
 
 **What I did:** never connected. Additionally, `src/campaign_db.py`
@@ -36,7 +36,7 @@ so the product key cannot be picked up by accident, and (b) raises at startup if
 `SUPABASE_URL` contains `kngcxwcybozgqgnoweyt`.
 
 **Blocks:** nothing in this batch. It is a standing hazard for **Batches C, D, E
-and F**, which import this client — if any of them runs in a container with these
+and F**, which import this client - if any of them runs in a container with these
 same ambient variables and someone relaxes the guard, outreach data lands in the
 product database.
 
@@ -46,14 +46,14 @@ leave the guard in place.
 
 ---
 
-## B-3 — DSD table structure unreadable, so no foreign key to it
+## B-3 - DSD table structure unreadable, so no foreign key to it
 
 **Missing:** the DSD tables' names, columns and primary-key types. They live in a
 project this session cannot (and must not) connect to, and their DDL, if checked
 in anywhere, is in `outreach-engine`, which is out of bounds.
 
 **What I did:** added a nullable, unconstrained `campaign.companies.dsd_company_id
-uuid`. No `REFERENCES` clause — an invented reference would have made
+uuid`. No `REFERENCES` clause - an invented reference would have made
 `001_schema.sql` fail on execution.
 
 **Blocks:** automatic de-duplication of campaign companies against companies DSD
@@ -66,7 +66,7 @@ foreign key and a backfill on `domain`. Not needed for the campaign to run.
 
 ---
 
-## B-4 — Six-value taxonomy could not be diffed against the live classifier
+## B-4 - Six-value taxonomy could not be diffed against the live classifier
 
 **Missing:** sight of the actual string values `outreach-engine` writes. The six
 values are taken verbatim from the spec (`hot_pain`, `curious`, `endorse`,
@@ -82,7 +82,7 @@ values and confirm they match the six exactly.
 
 ---
 
-## B-5 — Schema `campaign` is not exposed to PostgREST by default
+## B-5 - Schema `campaign` is not exposed to PostgREST by default
 
 **What is missing:** Supabase's REST API only serves schemas listed under
 Settings → API → *Exposed schemas* (default: `public`, `graphql_public`).
@@ -90,7 +90,7 @@ Settings → API → *Exposed schemas* (default: `public`, `graphql_public`).
 `Content-Profile: campaign`, which returns `PGRST106 (schema not in search path)`
 until `campaign` is added to that list.
 
-I cannot add it — that is a dashboard setting on a project I must not connect to.
+I cannot add it - that is a dashboard setting on a project I must not connect to.
 
 **Blocks:** every write from Batches C, D and E, and the Friday brief, **against
 a live database**. Local proof runs are unaffected.
@@ -100,7 +100,7 @@ schemas → add `campaign` → save. This is step 3 in `README.md`.
 
 ---
 
-## B-6 — No live database was available to test against
+## B-6 - No live database was available to test against
 
 **Missing:** any reachable Postgres. `psql` is installed but there is no local
 server (`initdb`/`pg_ctl` are absent), egress to Supabase is blocked, and
