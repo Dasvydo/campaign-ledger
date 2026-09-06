@@ -5,12 +5,8 @@
 -- TARGET PROJECT: oqpeebtwtikdzorgouxd  (the lead-pipeline / DSD project)
 -- TARGET SCHEMA:  campaign               (new schema, created below)
 --
--- !! READ BEFORE RUNNING !!
--- The target project ref above is taken from the batch spec. It could NOT be
--- confirmed from inside the build session (no supabase/ dir, no .env, no
--- dashboard access, sibling repos out of bounds). Confirm in the Supabase
--- dashboard that oqpeebtwtikdzorgouxd is the lead-pipeline project BEFORE
--- running this. See AUDIT.md and BLOCKED.md (B-1).
+-- The target project ref above was CONFIRMED by Dovy on 2026-09-06 (BLOCKED.md
+-- B-1, resolved). Still check the project ref in the URL bar before running.
 --
 -- This must NEVER be run against the PRODUCT database (the Frankfurt project).
 -- Check the project ref in the URL bar against the one in .env.example first.
@@ -54,11 +50,16 @@ do $$ begin
   create type campaign.lang as enum ('en', 'da', 'lt');
 exception when duplicate_object then null; end $$;
 
--- The six-value reply taxonomy already in use by the outreach engine.
--- Reused verbatim. Do not extend without checking that repo's classifier first.
+-- The six-value reply taxonomy, canonical campaign-wide since 2026-09-06 and
+-- identical to the set the outreach engine's classifier emits. Do not extend
+-- without changing that repo's classifier in the same change.
+--
+-- How 003_views.sql reads them: interested and referred are POSITIVE; not_now
+-- and objection are NEUTRAL (a reply, but not a positive one); not_a_fit and
+-- unsubscribe are NEGATIVE. NULL means no reply yet, not a seventh class.
 do $$ begin
   create type campaign.reply_sentiment as enum (
-    'hot_pain', 'curious', 'endorse', 'objection', 'unrelated', 'ineligible'
+    'interested', 'not_now', 'not_a_fit', 'referred', 'objection', 'unsubscribe'
   );
 exception when duplicate_object then null; end $$;
 
@@ -209,7 +210,7 @@ create index if not exists touches_sent_at_idx    on campaign.touches (sent_at);
 create index if not exists touches_replied_at_idx on campaign.touches (replied_at);
 
 comment on column campaign.touches.reply_sentiment is
-  'The six-value taxonomy shared with the outreach engine. NULL means no reply yet, not a seventh class.';
+  'The six-value taxonomy shared with the outreach engine: interested, not_now, not_a_fit, referred, objection, unsubscribe. NULL means no reply yet, not a seventh class.';
 
 -- ---------------------------------------------------------------------
 -- leads - qualifier submissions, one row per form submit
@@ -318,7 +319,7 @@ create index if not exists pilots_charge_due_on_idx on campaign.pilots (charge_d
 comment on column campaign.pilots.seats is
   'Minimum 10. The offer does not exist below that.';
 comment on column campaign.pilots.mrr_eur is
-  'Recurring revenue. NOTE: the offer is priced in USD ($89/seat/month) but this column is EUR, per spec. Whoever writes it must convert. See RUN-REPORT.md.';
+  'Recurring revenue. NOTE: the offer is priced in USD ($89 per seat per month plus a $500 one-off setup, which is not MRR) but this column is EUR, per spec. Whoever writes it must convert. See RUN-REPORT.md.';
 
 -- ---------------------------------------------------------------------
 -- content - one row per reel or ad creative

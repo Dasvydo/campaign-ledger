@@ -2,7 +2,7 @@
 -- campaign-ledger / 003_views.sql
 -- The three views the Friday brief reads.
 --
--- TARGET PROJECT: oqpeebtwtikdzorgouxd   (confirm before running - see B-1)
+-- TARGET PROJECT: oqpeebtwtikdzorgouxd   (confirmed by Dovy 2026-09-06, B-1 resolved)
 -- Run order: 001_schema.sql -> 002_rls.sql -> 003_views.sql
 -- Re-runnable: yes (CREATE OR REPLACE).
 --
@@ -18,6 +18,18 @@
 -- 2. Enum columns are cast to text. It keeps the views readable from any
 --    client without enum type mapping, and keeps the grouping key stable if an
 --    enum ever gains a label.
+--
+-- How replies are counted (decided 2026-09-06, applies to both funnels)
+-- ---------------------------------------------------------------------
+--   replies          = every touch with a non-NULL reply_sentiment
+--   positive_replies = reply_sentiment in ('interested', 'referred')
+--   reply_rate_pct   = 100 * replies / touches_sent
+--
+--   not_now and objection are NEUTRAL: they count as replies, not as positive.
+--   not_a_fit and unsubscribe are NEGATIVE: they count as replies, not as
+--   positive. The views do not expose a negative count; "replies minus
+--   positive_replies" is neutral plus negative together, and if that split is
+--   ever needed it belongs in a new column, not in a re-reading of this one.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -47,12 +59,15 @@ ct as (
   group by cast(market as text)
 ),
 tc as (
+  -- replies = any non-null reply_sentiment. positive = interested or referred.
+  -- not_now / objection are neutral, not_a_fit / unsubscribe are negative;
+  -- both count as replies and neither counts as positive. See file header.
   select
     cast(c.market as text) as market,
     count(*) as touches_sent,
-    count(t.replied_at) as replies,
+    count(t.reply_sentiment) as replies,
     count(*) filter (
-      where cast(t.reply_sentiment as text) in ('hot_pain', 'curious', 'endorse')
+      where cast(t.reply_sentiment as text) in ('interested', 'referred')
     ) as positive_replies
   from campaign.touches t
   join campaign.contacts c on c.id = t.contact_id
@@ -120,7 +135,7 @@ left join pl on pl.market = m.market
 order by m.sort_order;
 
 comment on view campaign.v_market_funnel is
-  'One row per market, zeros included. Decides which of dk / lt / global to keep.';
+  'One row per market, zeros included. Decides which of dk / lt / global to keep. replies = touches with a non-NULL reply_sentiment; positive_replies = interested or referred; not_now and objection are neutral, not_a_fit and unsubscribe are negative (both count as replies, neither as positive).';
 
 -- ---------------------------------------------------------------------
 -- v_channel_funnel
@@ -156,12 +171,14 @@ ct as (
   from campaign.contacts
 ),
 tc as (
+  -- Same definition as v_market_funnel: replies = any non-null
+  -- reply_sentiment, positive = interested or referred. See file header.
   select
     'outreach' as channel,
     count(*) as touches_sent,
-    count(t.replied_at) as replies,
+    count(t.reply_sentiment) as replies,
     count(*) filter (
-      where cast(t.reply_sentiment as text) in ('hot_pain', 'curious', 'endorse')
+      where cast(t.reply_sentiment as text) in ('interested', 'referred')
     ) as positive_replies
   from campaign.touches t
 ),
@@ -241,7 +258,7 @@ left join sp on sp.channel = ch.channel
 order by ch.sort_order;
 
 comment on view campaign.v_channel_funnel is
-  'One row per acquisition source. companies/contacts/touches are outreach-only by construction; spend is ad-only.';
+  'One row per acquisition source. companies/contacts/touches are outreach-only by construction; spend is ad-only. replies and positive_replies use the same definition as v_market_funnel: any non-NULL reply_sentiment, and interested or referred.';
 
 -- ---------------------------------------------------------------------
 -- v_content_perf

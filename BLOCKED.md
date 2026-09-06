@@ -2,9 +2,20 @@
 
 Logged and continued past, per global rule 5. Nothing here stopped the batch.
 
+Status on 2026-09-06: **B-1 and B-4 resolved** by Dovy's decisions (see
+`RUN-REPORT.md`, "Decisions applied"). B-2, B-3, B-5 and B-6 remain open.
+
 ---
 
-## B-1 - Target Supabase project could not be confirmed
+## B-1 - Target Supabase project could not be confirmed - RESOLVED 2026-09-06
+
+**Resolution:** Dovy confirmed the ledger lives in Supabase project
+`oqpeebtwtikdzorgouxd`, schema `campaign`. The migrations were already written
+against that project; the "confirm before running" warnings in the migration
+headers, `README.md` and `.env.example` now state it as confirmed. Nothing else
+changed. The migrations are still Dovy's to run (global rule 3).
+
+The original entry, for the record:
 
 **Missing:** any way to confirm that project `oqpeebtwtikdzorgouxd` exists, is
 Dovy's, and is the one holding the DSD LinkedIn discovery data. No `supabase/`
@@ -14,13 +25,6 @@ notes, and `outreach-engine` is out of bounds for this session.
 **What I did:** wrote all three migrations against `oqpeebtwtikdzorgouxd`, schema
 `campaign`, exactly as the spec names it. Did **not** guess an alternative and did
 **not** fall back to the product project.
-
-**Blocks:** running the migrations. Nothing else - the client, the brief, the seed
-and the local proof all work without it.
-
-**To unblock (Dovy, ~1 min):** open the Supabase dashboard, confirm
-`oqpeebtwtikdzorgouxd` is the lead-pipeline/DSD project, then run the migrations
-in that project's SQL editor.
 
 ---
 
@@ -66,19 +70,23 @@ foreign key and a backfill on `domain`. Not needed for the campaign to run.
 
 ---
 
-## B-4 - Six-value taxonomy could not be diffed against the live classifier
+## B-4 - Six-value taxonomy could not be diffed against the live classifier - RESOLVED 2026-09-06
+
+**Resolution:** the spec's six values and the outreach engine's six values did
+differ, and Dovy resolved it campaign-wide in favour of the outreach engine's
+set: `interested`, `not_now`, `not_a_fit`, `referred`, `objection`,
+`unsubscribe`. The enum in `001_schema.sql`, the client's validation list, the
+seed and the views now use exactly those. The retired set is recorded once, in
+`RUN-REPORT.md` under "Decisions applied".
+
+The original entry, for the record:
 
 **Missing:** sight of the actual string values `outreach-engine` writes. The six
-values are taken verbatim from the spec (`hot_pain`, `curious`, `endorse`,
-`objection`, `unrelated`, `ineligible`) and are now a Postgres enum, which will
+values were taken verbatim from the spec and made a Postgres enum, which will
 **reject** any value outside that set.
 
 **Blocks:** nothing yet. It becomes a silent write failure in Batch C if that
-repo's classifier uses different casing or spelling (`hot-pain`, `HOT_PAIN`,
-`endorsement`).
-
-**To unblock (Dovy, ~1 min):** grep `outreach-engine` for the classifier's output
-values and confirm they match the six exactly.
+repo's classifier uses different casing or spelling.
 
 ---
 

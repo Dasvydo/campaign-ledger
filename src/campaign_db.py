@@ -159,9 +159,12 @@ _SEGMENTS = ("accounting", "insurance", "admin")
 _COMPANY_SOURCES = ("icp_finder", "linkedin", "inbound")
 _EMAIL_SOURCES = ("instantly_finder", "public", "inbound")
 _TOUCH_CHANNELS = ("linkedin_connect", "linkedin_dm", "email", "phone")
-# The six-value taxonomy, shared with the outreach engine. Do not extend.
-_SENTIMENTS = ("hot_pain", "curious", "endorse", "objection", "unrelated",
-               "ineligible")
+# The six-value reply taxonomy, canonical campaign-wide since 2026-09-06 and
+# identical to what the outreach engine's classifier emits. Do not extend.
+# The views read interested + referred as positive, not_now + objection as
+# neutral, not_a_fit + unsubscribe as negative. All six are replies.
+_SENTIMENTS = ("interested", "not_now", "not_a_fit", "referred", "objection",
+               "unsubscribe")
 _TEAM_SIZES = ("1-9", "10-24", "25-49", "50+")
 _EMAIL_CLIENTS = ("outlook", "gmail", "other")
 _LEAD_ROLES = ("owner_partner", "ops_office_manager", "it_admin", "other")
@@ -473,9 +476,11 @@ def record_reply(contact_id: str, channel: str, sentiment: str, *,
     """Attach a reply and its classification to a touch that already exists.
 
     `sentiment` must be one of the six shared values:
-    hot_pain, curious, endorse, objection, unrelated, ineligible.
+    interested, not_now, not_a_fit, referred, objection, unsubscribe.
     Anything else is rejected here with a readable message rather than by
-    Postgres as an enum cast error.
+    Postgres as an enum cast error. `interested` and `referred` are what the
+    funnel views count as positive replies; the other four are replies too,
+    just not positive ones.
 
     Idempotent: recording the same reply twice writes the same values. Pass
     `touch_id` to target a specific row; otherwise the touch is found by

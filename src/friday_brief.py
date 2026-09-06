@@ -83,15 +83,16 @@ def market_section(markets: Sequence[Mapping[str, Any]]) -> str:
     rows = [[
         MARKET_LABEL.get(m["market"], m["market"]),
         _n(m["companies_found"]), _n(m["contacts"]), _n(m["touches_sent"]),
-        _n(m["replies"]), _pct(m["reply_rate_pct"]),
+        _n(m["replies"]), _n(m["positive_replies"]), _pct(m["reply_rate_pct"]),
         _n(m["leads"]), _n(m["qualified_leads"]),
         _n(m["meetings_booked"]), _n(m["meetings_held"]),
         _n(m["pilots_started"]), _n(m["pilots_converted"]),
         _eur(m["mrr_eur"]),
     ] for m in markets]
     return _table(
-        ["Market", "Firms", "Contacts", "Touches", "Replies", "Reply rate",
-         "Leads", "Qualified", "Booked", "Held", "Pilots", "Converted", "MRR"],
+        ["Market", "Firms", "Contacts", "Touches", "Replies", "Positive",
+         "Reply rate", "Leads", "Qualified", "Booked", "Held", "Pilots",
+         "Converted", "MRR"],
         rows)
 
 
@@ -200,7 +201,9 @@ def suggestions(markets: Sequence[Mapping[str, Any]],
             out.append(
                 f"- **{MARKET_LABEL[worst['market']]} is the weakest market so "
                 f"far.** {_n(worst['touches_sent'])} touches produced "
-                f"{_n(worst['replies'])} replies, {_n(worst['leads'])} leads and "
+                f"{_n(worst['replies'])} replies "
+                f"({_n(worst['positive_replies'])} positive), "
+                f"{_n(worst['leads'])} leads and "
                 f"{_n(worst['meetings_held'])} held calls. "
                 f"{MARKET_LABEL[best['market']]} on "
                 f"{_n(best['touches_sent'])} touches produced "
@@ -307,12 +310,13 @@ def suggestions(markets: Sequence[Mapping[str, Any]],
 def raw_numbers(markets: Sequence[Mapping[str, Any]],
                 channels: Sequence[Mapping[str, Any]]) -> str:
     """The last thing on the page: the figures, with nothing read into them."""
-    lines = ["Market: touches / replies / leads / qualified / booked / held / "
-             "pilots / converted / MRR"]
+    lines = ["Market: touches / replies / positive / leads / qualified / booked / "
+             "held / pilots / converted / MRR"]
     for m in markets:
         lines.append(
             f"  {MARKET_LABEL.get(m['market'], m['market'])}: "
-            f"{_n(m['touches_sent'])} / {_n(m['replies'])} / {_n(m['leads'])} / "
+            f"{_n(m['touches_sent'])} / {_n(m['replies'])} / "
+            f"{_n(m['positive_replies'])} / {_n(m['leads'])} / "
             f"{_n(m['qualified_leads'])} / {_n(m['meetings_booked'])} / "
             f"{_n(m['meetings_held'])} / {_n(m['pilots_started'])} / "
             f"{_n(m['pilots_converted'])} / {_eur(m['mrr_eur'])}")
@@ -367,9 +371,12 @@ def render(as_of: dt.date | None = None) -> str:
 
 {market_section(markets)}
 
-Reply rate is replies over touches. Qualified counts both `qualified` and
-`gmail_on_request` - a Gmail firm of 10+ seats is a real lead, it just gets the
-booking link on request.
+Replies is every touch that got a classified reply, whatever the class. Positive
+is `interested` or `referred` only: `not_now` and `objection` are replies but not
+positive, `not_a_fit` and `unsubscribe` are replies and negative. Reply rate is
+replies over touches. Qualified counts both `qualified` and `gmail_on_request` -
+a Gmail firm of 10+ seats is a real lead, it just gets the booking link on
+request.
 
 ---
 

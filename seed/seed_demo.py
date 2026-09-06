@@ -19,8 +19,10 @@ The data is shaped like the campaign actually is, not like a lorem generator:
   EU on unsolicited commercial email and Dovy has not confirmed the position
   yet. If a future change to the seed adds one, the assertion at the bottom of
   this file fails.
-* all six reply-sentiment values appear at least once, so the taxonomy is
-  exercised end to end rather than just declared.
+* all six reply-sentiment values (interested, not_now, not_a_fit, referred,
+  objection, unsubscribe) appear at least once, so the taxonomy is exercised
+  end to end rather than just declared, and both positive values are present
+  so `positive_replies` in the views is tested against a non-zero number.
 * content covers all three reel lanes plus both ad formats, with two snapshot
   days each, so `v_content_perf`'s "latest snapshot only" logic is actually
   under test rather than trivially satisfied.
@@ -128,18 +130,27 @@ TOUCHES = [
     ("alan-fenwick-sbb",   "email",            1, "en", f"{WEEK1}T14:35:00+00:00"),
 ]
 
-# All six taxonomy values are used. (slug, channel, step, sentiment, replied_at)
+# All six taxonomy values are used, in a distribution shaped like a real
+# week of cold outreach: a few interested, a few polite deferrals, some
+# pushback, and one each of the rarer outcomes. Ten replies:
+#   interested x3, not_now x2, objection x2, not_a_fit x1, referred x1,
+#   unsubscribe x1.
+# The three interested contacts are the ones who go on to book calls below.
+# Egle's firm has an in-house dev team (not_a_fit); Alan's is an 11-seat
+# Google Workspace shop that asked to be left alone (unsubscribe); Priya
+# passed the note to a colleague (referred) and later came in direct.
+# (slug, channel, step, sentiment, replied_at)
 REPLIES = [
-    ("mette-sorensen-nb",  "linkedin_dm",      2, "curious",   f"{WEEK2}T15:00:00+00:00"),
-    ("lars-bech-jf",       "phone",            3, "objection", f"{WEEK3}T10:20:00+00:00"),
-    ("ruta-kazlauskiene",  "linkedin_dm",      2, "hot_pain",  f"{WEEK2}T11:00:00+00:00"),
-    ("tomas-petraitis",    "email",            2, "curious",   f"{WEEK2}T13:00:00+00:00"),
-    ("darius-jankauskas",  "email",            2, "hot_pain",  f"{WEEK2}T16:30:00+00:00"),
-    ("egle-simkute",       "linkedin_connect", 1, "ineligible", f"{WEEK1}T17:00:00+00:00"),
-    ("dana-whitfield-cpa", "email",            2, "endorse",   f"{WEEK2}T18:00:00+00:00"),
-    ("marcus-reyes-mrp",   "email",            2, "objection", f"{WEEK2}T19:00:00+00:00"),
-    ("priya-raman-cfg",    "email",            2, "unrelated", f"{WEEK2}T20:00:00+00:00"),
-    ("alan-fenwick-sbb",   "email",            1, "ineligible", f"{WEEK1}T21:00:00+00:00"),
+    ("mette-sorensen-nb",  "linkedin_dm",      2, "not_now",     f"{WEEK2}T15:00:00+00:00"),
+    ("lars-bech-jf",       "phone",            3, "objection",   f"{WEEK3}T10:20:00+00:00"),
+    ("ruta-kazlauskiene",  "linkedin_dm",      2, "interested",  f"{WEEK2}T11:00:00+00:00"),
+    ("tomas-petraitis",    "email",            2, "not_now",     f"{WEEK2}T13:00:00+00:00"),
+    ("darius-jankauskas",  "email",            2, "interested",  f"{WEEK2}T16:30:00+00:00"),
+    ("egle-simkute",       "linkedin_connect", 1, "not_a_fit",   f"{WEEK1}T17:00:00+00:00"),
+    ("dana-whitfield-cpa", "email",            2, "interested",  f"{WEEK2}T18:00:00+00:00"),
+    ("marcus-reyes-mrp",   "email",            2, "objection",   f"{WEEK2}T19:00:00+00:00"),
+    ("priya-raman-cfg",    "email",            2, "referred",    f"{WEEK2}T20:00:00+00:00"),
+    ("alan-fenwick-sbb",   "email",            1, "unsubscribe", f"{WEEK1}T21:00:00+00:00"),
 ]
 
 

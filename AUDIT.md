@@ -40,11 +40,13 @@ Consequences, all of which are handled in the build:
   points at `kngcxwcybozgqgnoweyt`.
 - Batches C, D and E import this client. The guard protects them too.
 
-### Finding 2 - the lead-pipeline project ref is unconfirmed
+### Finding 2 - the lead-pipeline project ref is unconfirmed (resolved 2026-09-06)
 
 The spec names `oqpeebtwtikdzorgouxd` as the existing lead-pipeline project that
-holds the DSD LinkedIn discovery data. Nothing inside this session can confirm
-that project exists, that Dovy owns it, or that it is the DSD project.
+holds the DSD LinkedIn discovery data. Nothing inside the build session could
+confirm that project exists, that Dovy owns it, or that it is the DSD project.
+**Dovy confirmed it on 2026-09-06**: the ledger lives in `oqpeebtwtikdzorgouxd`,
+schema `campaign`. The paragraphs below describe the position at build time.
 
 Per the batch brief, the migration is written **against that named project, in a
 new schema `campaign`**, and the uncertainty is carried forward loudly:
@@ -90,21 +92,28 @@ De-duplication against DSD therefore stays **manual/deferred**, and is logged in
 ## 3. The six-value reply taxonomy
 
 The spec states the taxonomy in use and instructs reuse rather than reinvention.
-I could not read it from the outreach engine's source (out of bounds), so I took
-the six values exactly as the spec writes them, in that order:
+I could not read it from the outreach engine's source (out of bounds), so at
+build time I took the six values exactly as the spec wrote them.
+
+**Superseded on 2026-09-06.** The spec's set and the outreach engine's set turned
+out to differ, and Dovy resolved the conflict in favour of the outreach engine's
+set. The canonical six, now in the enum, the client and the seed, are:
 
 ```
-hot_pain, curious, endorse, objection, unrelated, ineligible
+interested, not_now, not_a_fit, referred, objection, unsubscribe
 ```
 
-These become the Postgres enum `campaign.reply_sentiment`. No seventh value, no
+The retired set is recorded once, in `RUN-REPORT.md` under "Decisions applied",
+and nowhere else in this repo.
+
+These are the Postgres enum `campaign.reply_sentiment`. No seventh value, no
 `null`-as-a-category, no parallel vocabulary, no renaming. `touches.reply_sentiment`
 is nullable - a touch with no reply yet has `NULL`, which is the absence of a
 classification rather than a class of its own.
 
-**Risk to check when landing:** if `outreach-engine` stores these as a different
-casing or with different spelling, the enum will reject its writes. Logged in
-`BLOCKED.md` as a one-minute check against that repo's classifier.
+The risk logged at build time (that the engine's casing or spelling would differ
+from the enum) is closed by the same decision: the enum now *is* the engine's
+set. `BLOCKED.md` B-4 is resolved.
 
 ---
 
@@ -112,9 +121,9 @@ casing or with different spelling, the enum will reject its writes. Logged in
 
 | Decision | Because |
 |---|---|
-| Migration targets `oqpeebtwtikdzorgouxd`, schema `campaign` | spec's named target; unconfirmed but not to be guessed around |
+| Migration targets `oqpeebtwtikdzorgouxd`, schema `campaign` | spec's named target; unconfirmed at build time, confirmed by Dovy 2026-09-06 |
 | No DSD foreign key, only a nullable `dsd_company_id` | DSD table shape unreadable from here |
-| Reply sentiment enum is exactly the six spec values | spec instruction, taken verbatim |
+| Reply sentiment enum is exactly six values | spec instruction at build time; since 2026-09-06 the six are the outreach engine's set (see section 3) |
 | Client reads `SUPABASE_SERVICE_KEY`, refuses `kngcxwcybozgqgnoweyt` | ambient session credentials point at the product DB |
 | SQL is validated by local parse only, never applied | global rule 3 - Dovy runs migrations |
 | `companies.domain` is `NOT NULL` and lowercased | it is the natural key upserts de-duplicate on; a nullable unique column would let duplicates through (Postgres allows many `NULL`s in a unique index) |

@@ -29,10 +29,14 @@ The ledger goes in the **lead-pipeline Supabase project**, in a **new schema
 called `campaign`**. That project already holds the DSD LinkedIn discovery data,
 which keeps the outreach story in one place.
 
-The spec names that project `oqpeebtwtikdzorgouxd`. **The build session could not
-confirm it** (no dashboard access, no `supabase/` directory, sibling repos out of
-bounds). Confirm it in the dashboard before running anything. See `BLOCKED.md`
-B-1.
+That project is **`oqpeebtwtikdzorgouxd`, confirmed by Dovy on 2026-09-06**
+(`BLOCKED.md` B-1, resolved). Still check the project ref in the URL bar before
+running anything.
+
+The offer the ledger tracks is priced at **89 USD per seat per month plus a 500
+USD one-off setup**. Any ROI figure quoted anywhere in the campaign (ad copy,
+reel hooks, the landing page) is **modelled, not measured**; this ledger records
+funnel counts and spend, never an ROI.
 
 The **product database (Frankfurt)** is off limits: no migration, no client, no
 read, no connection string. `src/campaign_db.py` refuses to build a client if
@@ -190,14 +194,32 @@ upgrade a lead by hand once a Gmail firm agrees to move.
 
 ### The six-value reply taxonomy
 
-`record_reply` accepts exactly these, shared with the outreach engine:
+`record_reply` accepts exactly these, the canonical campaign-wide set since
+2026-09-06 and identical to what the outreach engine's classifier emits:
 
 ```
-hot_pain   curious   endorse   objection   unrelated   ineligible
+interested   not_now   not_a_fit   referred   objection   unsubscribe
 ```
 
 They are a Postgres enum. Anything else is rejected in Python first, with a
-message that names the field.
+message that names the field. The previous set was retired on 2026-09-06; see
+`RUN-REPORT.md`, "Decisions applied".
+
+How the views read them, and how the brief reports them:
+
+| Value | Counts as a reply | Counts as positive | Reading |
+|---|---|---|---|
+| `interested` | yes | **yes** | wants to talk |
+| `referred` | yes | **yes** | pointed us at the right person |
+| `not_now` | yes | no | neutral: timing, come back later |
+| `objection` | yes | no | neutral: pushback that can be answered |
+| `not_a_fit` | yes | no | negative: wrong size, has a dev team, wrong segment |
+| `unsubscribe` | yes | no | negative: asked to be left alone |
+
+So in `v_market_funnel` and `v_channel_funnel`: `replies` is every touch with a
+non-null `reply_sentiment`, `positive_replies` is `interested` or `referred`,
+and `reply_rate_pct` is `replies / touches_sent`. The same definition is written
+as a SQL comment at the top of `003_views.sql` and on both views.
 
 ### One thing this client will not police
 
@@ -263,8 +285,11 @@ PostgREST - because it gets vendored into four other repos.
 ## The seed data
 
 `seed/seed_demo.py` writes about 90 rows: 12 firms across three markets, 13
-contacts, 25 touches, all six reply sentiments, 10 leads covering every routing
-outcome, 6 meetings, 2 pilots, 7 content items and two days of stats for each.
+contacts, 25 touches, 10 replies covering all six sentiments (3 `interested`,
+2 `not_now`, 2 `objection`, 1 `not_a_fit`, 1 `referred`, 1 `unsubscribe`), 10
+leads covering every routing outcome, 6 meetings, 2 pilots, 7 content items and
+two days of stats for each. The one ROI figure in it, the static ad's "9x
+return" hook, is a fixture mirroring ad copy and is a modelled number.
 
 Every value is hardcoded. No randomness, no `now()`. That is what makes the
 idempotency test meaningful: run it twice and every row is byte-identical.
@@ -274,5 +299,6 @@ idempotency test meaningful: run it twice and every row is byte-identical.
 ---
 
 See `AUDIT.md` for what could and could not be confirmed before the build,
-`BLOCKED.md` for the six open items, and `RUN-REPORT.md` for what shipped, what
-did not, and what Dovy has to do himself.
+`BLOCKED.md` for the open items (four open, two resolved), and `RUN-REPORT.md`
+for what shipped, what did not, the decisions applied on 2026-09-06, and what
+Dovy has to do himself.

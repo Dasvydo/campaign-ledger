@@ -1,7 +1,69 @@
 # RUN-REPORT - Batch B (`campaign-ledger`)
 
-Branch `campaign/b-ledger`. Three commits, nothing pushed, no remote configured.
-No database was connected to at any point, and no migration was applied.
+Branch `campaign/b-ledger`, tracking `origin`. No database was connected to at
+any point, and no migration was applied.
+
+---
+
+## Decisions applied - 2026-09-06
+
+Four campaign-wide decisions from Dovy, applied to this repo in one commit. The
+offline QA gate was re-run afterwards: **46 checks, 0 failures** (up from 42;
+the four new checks are listed under decision 3).
+
+**1. ROI figures are modelled, not measured.** This repo never records or
+computes an ROI, so nothing in the code changed. The one ROI figure in the repo
+is the seed's static-ad hook ("9x return. 40 day payback."), a fixture that
+mirrors ad copy. `README.md` now states that it, and any ROI quoted anywhere in
+the campaign, is a modelled number.
+
+**2. Price is 89 USD per seat per month plus 500 USD setup.** Already what the
+brief header printed. `README.md` now states it, and the `pilots.mrr_eur`
+column comment notes that the 500 USD setup is a one-off and not MRR.
+
+**3. The reply sentiment taxonomy changed.** The spec's six values and the
+outreach engine's six values turned out to differ; Dovy resolved the conflict
+campaign-wide in favour of the outreach engine's set. The canonical six are now
+exactly `interested`, `not_now`, `not_a_fit`, `referred`, `objection`,
+`unsubscribe`. Changelog note, the only place the retired set is written: the
+previous values were `hot_pain`, `curious`, `endorse`, `objection`,
+`unrelated`, `ineligible`, and they survive nowhere else in this repo.
+
+What changed for it:
+
+- `migrations/001_schema.sql`: the `campaign.reply_sentiment` enum is the new
+  six. The column comment on `touches.reply_sentiment` names them.
+- `migrations/003_views.sql`: `positive_replies` in both funnels is now
+  `interested` or `referred`. `replies` is now `count(reply_sentiment)` (any
+  non-null classification) rather than `count(replied_at)`; the two agree
+  whenever `record_reply` is the writer, and the definition is the one that was
+  decided. `not_now` and `objection` are neutral, `not_a_fit` and `unsubscribe`
+  are negative: all four count as replies, none as positive. The definition is
+  a SQL comment in the file header, in each `tc` CTE, and on both views.
+- `src/campaign_db.py`: `_SENTIMENTS` and the `record_reply` docstring.
+  `record_reply` rejects anything outside the six before a request is built.
+- `seed/seed_demo.py`: ten replies redistributed as 3 `interested`, 2
+  `not_now`, 2 `objection`, 1 `not_a_fit`, 1 `referred`, 1 `unsubscribe`.
+  Lithuania keeps 9 touches and 4 replies, so the existing arithmetic check is
+  unchanged.
+- `src/friday_brief.py`: the market table gains a **Positive** column, the note
+  under it spells out the definition, the weakest-market line reports positives
+  alongside replies, and the raw-numbers block carries the positive count.
+  `briefs/2026-09-25.md` was re-rendered.
+- `tests/run_local_proof.py`: the taxonomy set, plus four new checks:
+  positives are `interested` + `referred` only (dk 0, lt 2, global 2); neutral
+  and negative values still count as replies (dk 2 of 8); the channel funnel
+  agrees with the market funnel (10 replies, 4 positive); and `record_reply`
+  rejects a wrong-casing value (`INTERESTED`) as well as a made-up one.
+- `AUDIT.md` section 3 and `BLOCKED.md` B-4 updated; B-4 is resolved.
+
+**4. The ledger lives in Supabase project `oqpeebtwtikdzorgouxd`, schema
+`campaign`.** Confirmed by Dovy. `BLOCKED.md` B-1 is resolved. The migration
+headers, `README.md`, `.env.example` and `AUDIT.md` finding 2 now say confirmed
+instead of "confirm before running". The migrations remain Dovy's to run.
+
+Idempotency re-proven after the changes: the seed runs twice on the SQLite
+mirror with an identical full-table diff (9 tables, 91 rows). The brief renders.
 
 ---
 
@@ -18,10 +80,10 @@ No database was connected to at any point, and no migration was applied.
 | `.env.example` | the two variables, empty |
 | `README.md` | setup in four steps, the full client signature list, the idempotency table |
 | `AUDIT.md` | Phase 0, written before any other file changed |
-| `BLOCKED.md` | six open items, B-1 to B-6 |
+| `BLOCKED.md` | six items, B-1 to B-6; B-1 and B-4 resolved 2026-09-06 |
 | `tools/validate_sql.py` | offline parse-check |
 | `tests/sqlite_mirror.py` | runs the committed `.sql` on in-memory SQLite |
-| `tests/run_local_proof.py` | the QA gate as code: 42 checks, all passing |
+| `tests/run_local_proof.py` | the QA gate as code: 46 checks, all passing |
 | `briefs/2026-09-25.md` | an example brief from seed data, labelled as such in its first line |
 
 Three design decisions worth surfacing, because they are the ones that would be
@@ -47,7 +109,7 @@ is a check for this.
 
 ## The QA gate, line by line
 
-Run `python3 tests/run_local_proof.py` to reproduce. 42 checks, 0 failures.
+Run `python3 tests/run_local_proof.py` to reproduce. 46 checks, 0 failures.
 
 ### [x] Migrations parse (validate SQL syntax locally; do not connect)
 
@@ -83,6 +145,8 @@ Beyond "it rendered", the gate asserts the arithmetic:
 
 - `v_market_funnel` returns exactly three rows, `dk`/`lt`/`global`, zeros included
 - Lithuania: 9 touches, 4 replies, 44.4% - matching the seed by hand
+- positive replies are `interested` + `referred` only: dk 0, lt 2, global 2;
+  Denmark's two neutral replies count as replies and not as positives
 - 4 firms per market, proving the joins do not fan out
 - MRR totals 3197.00, counting the one converted pilot and not the unconverted one
 - ads: 178.55 spend over 2 booked calls = 89.28 per call; NULL for the other three channels
@@ -120,7 +184,8 @@ makes that test meaningful rather than lucky.
 Three further checks on the guards:
 
 - a replayed `log_touch` keeps its original `sent_at`
-- `record_reply` rejects a sentiment outside the six values
+- `record_reply` rejects a sentiment outside the six values, both a made-up
+  one and a real one in the wrong casing
 - the `leads` CHECK rejects a 25-49 seat team filed as `too_small`
 
 ### [x] No secret in any committed file
@@ -132,9 +197,11 @@ Scanned every committed file for JWT-shaped strings and for a filled-in
 The client reads both values from the environment, and `_redact()` strips the key
 out of every error message before it can reach a log.
 
-### [x] Branch `campaign/b-ledger`, nothing pushed
+### [x] Branch `campaign/b-ledger`
 
-Three commits on `campaign/b-ledger`. `git remote -v` is empty.
+At the time of the original build: three commits, no remote. Since then the
+branch tracks `origin/campaign/b-ledger` and the 2026-09-06 decisions commit is
+pushed there.
 
 ---
 
@@ -229,8 +296,8 @@ agreed on would have broken the contract, so nothing was added. Flagging it as a
 thing to decide before the first real submission.
 
 **4. `pilots.mrr_eur` is EUR but the offer is priced in USD.** The offer is $89
-per seat per month; the column the spec names is `mrr_eur`, and ad spend is
-genuinely in EUR. Shipped as specified, with a `COMMENT ON COLUMN` saying that
+per seat per month plus a $500 one-off setup (the setup is not MRR); the column
+the spec names is `mrr_eur`, and ad spend is genuinely in EUR. Shipped as specified, with a `COMMENT ON COLUMN` saying that
 whoever writes it must convert. The Friday brief prints it as EUR. If Stripe
 charges in USD, this column will silently be wrong by the exchange rate.
 
@@ -242,9 +309,9 @@ charges in USD, this column will silently be wrong by the exchange rate.
 |---|---|
 | Applying the migrations | Global rule 3. Dovy runs them. |
 | Connecting to any Supabase project | Global rule 3 and the hard boundary. Also impossible: egress is blocked. |
-| Confirming the target project ref | No dashboard access, no `supabase/` dir, sibling repos out of bounds. BLOCKED.md B-1. |
+| Confirming the target project ref | No dashboard access, no `supabase/` dir, sibling repos out of bounds. BLOCKED.md B-1. **Confirmed by Dovy 2026-09-06.** |
 | A foreign key to the DSD tables | Their shape is unreadable from here. B-3. |
-| Reading `outreach-engine` to diff the taxonomy | Out of bounds for this session. The six values are taken verbatim from the spec. B-4. |
+| Reading `outreach-engine` to diff the taxonomy | Out of bounds for this session. B-4. **Moot since 2026-09-06: the enum is now the outreach engine's set.** |
 | Testing RLS behaviour at runtime | Needs a live project and an `anon` request. Verification queries are in `002_rls.sql`. |
 | Verifying Postgres enum behaviour and rounding | SQLite has no enums and rounds independently. The client validates all 15 enums in Python first, so a bad value fails with a readable message rather than a `22P02`. |
 | `supabase-py` as a dependency | The client is vendored into four repos; a zero-dependency file is easier to keep working than a pinned one. |
@@ -253,12 +320,14 @@ charges in USD, this column will silently be wrong by the exchange rate.
 
 ## What Dovy has to do himself
 
-**About 12 minutes at a keyboard.** Nothing here can happen in the background.
+**About 10 minutes at a keyboard.** Nothing here can happen in the background.
+Steps 1 and 6 are done as of 2026-09-06 and are left in place so the numbering
+matches earlier notes.
 
-1. **Confirm the target project (1 min).** Open the Supabase dashboard and
-   confirm `oqpeebtwtikdzorgouxd` is the lead-pipeline / DSD project. The build
-   session could not verify this. Do not run anything until it is confirmed, and
-   never against the product project.
+1. **Confirm the target project.** Done: `oqpeebtwtikdzorgouxd` is the
+   lead-pipeline / DSD project, confirmed 2026-09-06. Still check the ref in
+   the URL bar before running anything, and never run against the product
+   project.
 
 2. **Run the three migrations, in order (3 min).** SQL editor, in the confirmed
    project: `001_schema.sql`, then `002_rls.sql`, then `003_views.sql`. All three
@@ -278,11 +347,10 @@ charges in USD, this column will silently be wrong by the exchange rate.
    `SUPABASE_SERVICE_KEY`, not `SUPABASE_SERVICE_ROLE_KEY`** - deliberate, see
    below.
 
-6. **Check the taxonomy against the live classifier (1 min).** Grep
-   `outreach-engine` for the values its classifier emits and confirm they are
-   exactly `hot_pain`, `curious`, `endorse`, `objection`, `unrelated`,
-   `ineligible`. Different casing or spelling will be rejected by the enum.
-   BLOCKED.md B-4.
+6. **Check the taxonomy against the live classifier.** Done: the enum is now
+   the outreach engine's own set, `interested`, `not_now`, `not_a_fit`,
+   `referred`, `objection`, `unsubscribe`, decided 2026-09-06. Different casing
+   or spelling will still be rejected by the enum. BLOCKED.md B-4, resolved.
 
 7. **Optional, deferrable (5 min).** Confirm the DSD company table name and PK
    type, and a short `004_dsd_link.sql` can add the foreign key on
@@ -311,6 +379,6 @@ ledger project, and leave the guard in place. BLOCKED.md B-2.
 ```bash
 pip install sqlglot
 python3 tools/validate_sql.py       # parse-check the migrations
-python3 tests/run_local_proof.py    # 42 checks, the whole QA gate
+python3 tests/run_local_proof.py    # 46 checks, the whole QA gate
 python3 src/friday_brief.py --local --no-write   # see the brief render
 ```

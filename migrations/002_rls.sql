@@ -2,7 +2,7 @@
 -- campaign-ledger / 002_rls.sql
 -- Row level security. Service role only. No anon policy, anywhere.
 --
--- TARGET PROJECT: oqpeebtwtikdzorgouxd   (confirm before running - see B-1)
+-- TARGET PROJECT: oqpeebtwtikdzorgouxd   (confirmed by Dovy 2026-09-06, B-1 resolved)
 -- Run order: 001_schema.sql -> 002_rls.sql -> 003_views.sql
 -- Re-runnable: yes.
 --

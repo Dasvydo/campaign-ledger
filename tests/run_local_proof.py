@@ -172,6 +172,23 @@ def check_seed_and_views() -> tuple[dict, dict, list]:
     check("market funnel arithmetic: lt has 9 touches, 4 replies, 44.4% rate",
           (lt["touches_sent"], lt["replies"], lt["reply_rate_pct"])
           == (9, 4, 44.4), str(lt))
+
+    # positive_replies = interested or referred. The seed gives lt two
+    # interested, one not_now and one not_a_fit: 4 replies, 2 positive. dk has
+    # one not_now and one objection: 2 replies, 0 positive, which is the case
+    # that proves neutral values are counted as replies but not as positive.
+    by_market = {m["market"]: m for m in markets}
+    check("positive replies are interested + referred only (lt 2, dk 0, global 2)",
+          tuple(by_market[k]["positive_replies"] for k in ("dk", "lt", "global"))
+          == (0, 2, 2),
+          str({k: v["positive_replies"] for k, v in by_market.items()}))
+    check("neutral and negative values still count as replies (dk 2 of 8)",
+          (by_market["dk"]["replies"], by_market["dk"]["touches_sent"]) == (2, 8),
+          str(by_market["dk"]))
+    outreach = next(c for c in channels if c["channel"] == "outreach")
+    check("channel funnel agrees with market funnel on replies and positives",
+          (outreach["replies"], outreach["positive_replies"]) == (10, 4),
+          str(outreach))
     check("market funnel does not fan out on joins: 4 firms per market",
           all(m["companies_found"] == 4 for m in markets),
           str([m["companies_found"] for m in markets]))
@@ -196,18 +213,22 @@ def check_seed_and_views() -> tuple[dict, dict, list]:
     # The six-value taxonomy, exercised rather than merely declared.
     used = {s for _, _, _, s, _ in seed_demo.REPLIES}
     check("all six reply-sentiment values are exercised by the seed",
-          used == {"hot_pain", "curious", "endorse", "objection", "unrelated",
-                   "ineligible"}, str(sorted(used)))
+          used == {"interested", "not_now", "not_a_fit", "referred",
+                   "objection", "unsubscribe"}, str(sorted(used)))
 
     # -- the guards, exercised rather than assumed ------------------------
 
-    try:
-        campaign_db.record_reply("does-not-matter", "email", "positive")
-        check("record_reply rejects a value outside the six-value taxonomy",
-              False, "it accepted 'positive'")
-    except campaign_db.CampaignDBError as exc:
-        check("record_reply rejects a value outside the six-value taxonomy",
-              "hot_pain" in str(exc))
+    # Two probes: a plausible-sounding value that was never in the taxonomy,
+    # and a real value in the wrong casing (the enum is case-sensitive and the
+    # classifier writes lowercase). Both must fail before a request is built.
+    for stale in ("positive", "INTERESTED"):
+        try:
+            campaign_db.record_reply("does-not-matter", "email", stale)
+            check(f"record_reply rejects {stale!r} (outside the six values)",
+                  False, f"it accepted {stale!r}")
+        except campaign_db.CampaignDBError as exc:
+            check(f"record_reply rejects {stale!r} (outside the six values)",
+                  "interested" in str(exc) and "unsubscribe" in str(exc))
 
     # The routing CHECK: a 10+ seat team can never be filed as too_small, and a
     # 1-9 seat team can never be filed as anything else.
