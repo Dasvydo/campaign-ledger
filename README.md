@@ -3,6 +3,23 @@
 The one place that knows the whole funnel for the DoviLoop Teams campaign
 (8 Sept - 19 Oct 2026).
 
+> **Campaign-wide documents live in `campaign-n8n/ops/`.** This repo is one of six
+> batches; the status of all of them, the setup guide for a new machine, the
+> decisions taken and what is still waiting on a human are kept together there:
+>
+> | File | What |
+> |---|---|
+> | `ops/STATUS.md` | audit of all six batches |
+> | `ops/NEW-PC-SETUP.md` | clone, install and prove every repo from scratch |
+> | `ops/DECISIONS.md` | what was decided, why, and how to reverse it |
+> | `ops/NIGHT-RUN.md` | the current task plan and its live status |
+> | `ops/HANDOFF.md` | what to pick up next |
+>
+> The six repos must be cloned as **siblings under one parent directory** -
+> several tools reach across them by relative path, and this repo's own contract
+> tests locate `campaign-ledger` that way.
+
+
 Instantly knows who was emailed. Google Calendar knows who booked. Stripe knows
 who paid. Buffer knows what posted. None of them can answer *"calls booked per
 100 contacts, by market"*, which is the number the three-market A/B test gets
