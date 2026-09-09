@@ -279,7 +279,7 @@ so in its first line.
 Nothing in this repo connects to anything. Three commands:
 
 ```bash
-pip install sqlglot                 # the only dependency, and only for tests
+pip install -r requirements.txt     # sqlglot; the only dependency, and only for tests
 python3 tools/validate_sql.py       # parse-check the migrations
 python3 seed/seed_demo.py --local   # seed an in-memory SQLite mirror
 python3 tests/run_local_proof.py    # the whole QA gate

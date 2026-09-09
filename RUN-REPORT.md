@@ -271,14 +271,27 @@ None of these were changed. All are implemented exactly as `00-START-HERE.md`
 writes them.
 
 **1. A retried submission with a regenerated `submitted_at` will duplicate.**
-This is the one worth acting on. The payload carries no idempotency key, so
-`insert_lead` derives one from `lower(work_email) + submitted_at`. That is
-correct for a genuine second submission on a different day, and correct for an
-n8n retry that forwards the *original* `submitted_at`. But if Batch F's retry
-path stamps a fresh `submitted_at`, the same form submit lands twice and the lead
-count in the brief inflates. **Batch F must forward the browser's original
-`submitted_at` unchanged on every retry.** Alternatively a `submission_id` UUID
-added to the payload would remove the ambiguity entirely.
+**CLOSED 2026-09-08 - checked on both sides, and it does not happen.**
+
+The concern was that `insert_lead` derives its idempotency key from
+`lower(work_email) + submitted_at`, so a retry that stamped a *fresh*
+`submitted_at` would land the same form submit twice and inflate the lead count.
+Both halves of the path were read:
+
+- **Batch A never regenerates it.** `submitted_at` is stamped once when the form
+  is submitted (`campaign-site/src/components/Qualifier.tsx:168`), and
+  `submitLead` retries by calling `postOnce(payload, dedupeId)` with the *same
+  payload object and the same dedupe id* (`src/lib/lead.ts:128-148`). The
+  localStorage recovery queue stores that same payload, so a replay days later
+  still carries the original timestamp.
+- **Batch F forwards it verbatim.** WF-C1's `Validate and route` node reads
+  `const submittedAt = body.submitted_at;   // verbatim`, and its header comment
+  spells out why normalising it (adding a `Z`, dropping millis, re-serialising)
+  would produce a different key and break dedupe against anything written here.
+
+So there are three independent guards, not one: the same payload object across
+retries, the `X-DoviLoop-Dedupe` header, and this schema's `natural_key` unique
+index. The `submission_id` UUID suggested as an alternative is unnecessary.
 
 **2. `gmail_on_request` is described as a flag but modelled as a stage.** The
 routing table calls `qualified` and `too_small` ledger *stages* and
@@ -377,7 +390,7 @@ ledger project, and leave the guard in place. BLOCKED.md B-2.
 ## Verifying this without a database
 
 ```bash
-pip install sqlglot
+pip install -r requirements.txt     # sqlglot, test-only
 python3 tools/validate_sql.py       # parse-check the migrations
 python3 tests/run_local_proof.py    # 46 checks, the whole QA gate
 python3 src/friday_brief.py --local --no-write   # see the brief render
