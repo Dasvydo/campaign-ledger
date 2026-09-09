@@ -22,6 +22,7 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT / "tests"), str(ROOT / "seed")]
 import campaign_db  # noqa: E402
 import friday_brief  # noqa: E402
 import seed_demo  # noqa: E402
+import schema_drift  # noqa: E402
 import sqlite_mirror  # noqa: E402
 
 PASSED: list[str] = []
@@ -103,6 +104,39 @@ def check_client_surface() -> None:
                        and issubclass(getattr(campaign_db, n), Exception))}
     check("no extra public function leaks out of campaign_db",
           public == expected, f"unexpected: {sorted(public - expected)}")
+
+
+# ---------------------------------------------------------------------------
+# 4. Column drift between the client and the schema
+#
+# The other batches import campaign_db and fall back to a local JSONL shim when
+# it is absent, so a column the client writes but the schema does not have
+# passes every offline test in every repo and fails on the first live write.
+# tests/schema_drift.py reads both sides out of the committed text - sqlglot for
+# the migration, ast for the client - and never imports or connects to either.
+# ---------------------------------------------------------------------------
+
+def check_schema_drift() -> None:
+    findings = schema_drift.audit()
+
+    check("every column campaign_db writes exists in 001_schema.sql",
+          not findings["unknown_column"],
+          "; ".join(findings["unknown_column"]))
+    check("every written value can land in the column it targets",
+          not findings["type_drift"], "; ".join(findings["type_drift"]))
+    check("the client's enum allowlists match the schema's enums",
+          not findings["enum_drift"], "; ".join(findings["enum_drift"]))
+    check("every table has a writer, or is a declared exception",
+          not findings["writer_drift"], "; ".join(findings["writer_drift"]))
+
+    # Without this, the audit could rot into UNKNOWN everywhere and keep
+    # passing. UNKNOWN never fails a type check, so the share of columns that
+    # resolve to a concrete family is the audit's real strength.
+    resolved, total = schema_drift.resolution_report()
+    check(f"the drift audit still resolves {resolved} of {total} written "
+          "columns to a concrete type",
+          total >= 60 and resolved >= total * 0.75,
+          f"resolved {resolved} of {total}")
 
 
 # ---------------------------------------------------------------------------
@@ -355,6 +389,7 @@ def main() -> int:
     check_migrations_parse()
     check_rls()
     check_client_surface()
+    check_schema_drift()
     check_forbidden_project()
     markets, channels, content = check_seed_and_views()
     check_brief(markets, channels, content)
