@@ -82,8 +82,9 @@ mirror with an identical full-table diff (9 tables, 91 rows). The brief renders.
 | `AUDIT.md` | Phase 0, written before any other file changed |
 | `BLOCKED.md` | six items, B-1 to B-6; B-1 and B-4 resolved 2026-09-06 |
 | `tools/validate_sql.py` | offline parse-check |
+| `tests/schema_drift.py` | column drift audit: campaign_db against the schema |
 | `tests/sqlite_mirror.py` | runs the committed `.sql` on in-memory SQLite |
-| `tests/run_local_proof.py` | the QA gate as code: 46 checks, all passing |
+| `tests/run_local_proof.py` | the QA gate as code: 51 checks, all passing |
 | `briefs/2026-09-25.md` | an example brief from seed data, labelled as such in its first line |
 
 Three design decisions worth surfacing, because they are the ones that would be
@@ -109,7 +110,8 @@ is a check for this.
 
 ## The QA gate, line by line
 
-Run `python3 tests/run_local_proof.py` to reproduce. 46 checks, 0 failures.
+Run `python3 tests/run_local_proof.py` to reproduce. 51 checks, 0 failures.
+(46 on 2026-09-06; the drift audit added five on 2026-09-09.)
 
 ### [x] Migrations parse (validate SQL syntax locally; do not connect)
 
@@ -187,6 +189,43 @@ Three further checks on the guards:
 - `record_reply` rejects a sentiment outside the six values, both a made-up
   one and a real one in the wrong casing
 - the `leads` CHECK rejects a 25-49 seat team filed as `too_small`
+
+### [x] No column drift between `campaign_db.py` and the schema
+
+Added 2026-09-09. `tests/schema_drift.py` parses `migrations/001_schema.sql`
+with sqlglot and `src/campaign_db.py` with `ast`. Neither file is imported or
+executed, so the audit is a property of the committed text rather than of a
+particular run.
+
+It resolves **59 of 71 written columns** to a concrete type family. The 12 it
+cannot are `insert_lead`'s `payload.get()` reads: the payload is
+`Mapping[str, Any]` and its element types are genuinely unknown until runtime.
+An UNKNOWN family never fails a type check, so the gate asserts that resolution
+share as a check in its own right - otherwise the audit could rot into UNKNOWN
+everywhere and keep passing.
+
+Four drift classes, all currently clean:
+
+| Class | What fails it |
+|---|---|
+| unknown column | the client writes a column the table does not have |
+| type drift | the written value's family cannot land in that Postgres type |
+| enum drift | a `_check` allowlist disagrees with its `create type ... as enum` |
+| writer drift | a table gains or loses a writer |
+
+The rule that carries the weight is TEXT_ID against TEXT_MADE. A bare `str`
+parameter whose name ends in `_id` may land in a `uuid` column; a string the
+function built - a slug, an f-string, a normalised domain - may not. That is
+the 2026-09-08 Batch E bug stated as a rule.
+
+`meetings` and `pilots` are declared in `WRITERLESS_TABLES` as having no writer
+on purpose. Adding one, or losing a writer on any other table, fails the check.
+
+Proved by injecting each drift class one at a time and reverting: a slug into
+`ad_stats.creative_content_id`, an `engagement_rate` column `content_stats`
+does not have, a seventh value in `_SENTIMENTS`, and `_iso()` into
+`content_stats.captured_on`. Each failed, naming table, column, type, function
+and line.
 
 ### [x] No secret in any committed file
 
@@ -392,6 +431,6 @@ ledger project, and leave the guard in place. BLOCKED.md B-2.
 ```bash
 pip install -r requirements.txt     # sqlglot, test-only
 python3 tools/validate_sql.py       # parse-check the migrations
-python3 tests/run_local_proof.py    # 46 checks, the whole QA gate
+python3 tests/run_local_proof.py    # 51 checks, the whole QA gate
 python3 src/friday_brief.py --local --no-write   # see the brief render
 ```
