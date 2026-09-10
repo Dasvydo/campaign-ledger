@@ -35,6 +35,18 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # separated by one booked call out of six is not a finding.
 THIN_EVIDENCE = 30
 
+# The offer, as arithmetic rather than as a sentence. The paid-channel line used
+# to end in a fixed clause - "one 10 seat firm covers that in the first week of a
+# paid month" - appended whatever the cost in front of it said. At EUR 4,500 per
+# booked call it still said it, which is false by a factor of about twenty. The
+# claim only ever held while cost per booked call stayed under roughly one week
+# of one reference firm's billing, so that is now computed and the sentence
+# follows the number instead of preceding it.
+SEAT_PRICE_USD = 89
+REFERENCE_SEATS = 10          # the floor of the ICP: 10+ seats
+USD_TO_EUR = 0.92             # stated in the brief, so a reader can re-do the sum
+WEEKS_PER_MONTH = 4.33
+
 MARKET_LABEL = {"dk": "Denmark", "lt": "Lithuania", "global": "US / global"}
 CHANNEL_LABEL = {"outreach": "Outreach", "reel": "Reels", "ad": "Meta ads",
                  "direct": "Direct"}
@@ -243,12 +255,24 @@ def suggestions(markets: Sequence[Mapping[str, Any]],
 
     # -- channels -----------------------------------------------------------
     paid = [c for c in channels if c["cost_per_booked_call_eur"] is not None]
+    reference_month = SEAT_PRICE_USD * REFERENCE_SEATS * USD_TO_EUR
+    reference_week = reference_month / WEEKS_PER_MONTH
     for c in paid:
+        cost = c["cost_per_booked_call_eur"]
+        firm = (f"A {REFERENCE_SEATS} seat firm bills about "
+                f"{_eur(reference_month)} a month at ${SEAT_PRICE_USD} a seat "
+                f"({USD_TO_EUR} USD/EUR)")
+        if cost <= reference_week:
+            verdict = f"{firm}, so one covers this in its first week."
+        elif cost <= reference_month:
+            verdict = f"{firm}, so one covers this within its first paid month."
+        else:
+            verdict = (f"{firm} - less than this costs. At this price the "
+                       f"channel does not pay for itself.")
         out.append(
             f"- **{CHANNEL_LABEL.get(c['channel'], c['channel'])} costs "
-            f"{_eur(c['cost_per_booked_call_eur'])} per booked call** at "
-            f"{_eur(c['spend_eur'])} spent. Against $89 per seat per month, "
-            "one 10 seat firm covers that in the first week of a paid month.")
+            f"{_eur(cost)} per booked call** at "
+            f"{_eur(c['spend_eur'])} spent. {verdict}")
 
     for c in channels:
         if c["leads"] and not c["meetings_booked"]:

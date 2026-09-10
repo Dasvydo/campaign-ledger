@@ -322,6 +322,46 @@ def check_brief(markets, channels, content) -> None:
                                           "US / global")))
 
 
+def check_paid_channel_claim() -> None:
+    """The payback sentence must follow its own number, not precede it.
+
+    It used to end in a fixed clause - "one 10 seat firm covers that in the
+    first week of a paid month" - appended whatever cost was in front of it. At
+    EUR 4,500 per booked call it still said it: false by about a factor of
+    twenty. It was true only by luck of the week's numbers, because nothing
+    checked. These drive the function at three costs that must read differently.
+    """
+    week = (friday_brief.SEAT_PRICE_USD * friday_brief.REFERENCE_SEATS
+            * friday_brief.USD_TO_EUR / friday_brief.WEEKS_PER_MONTH)
+    month = (friday_brief.SEAT_PRICE_USD * friday_brief.REFERENCE_SEATS
+             * friday_brief.USD_TO_EUR)
+
+    row = {"channel": "ad", "leads": 4, "qualified_leads": 2,
+           "too_small_leads": 2, "meetings_booked": 2, "meetings_held": 0,
+           "touches_sent": 0, "cost_per_lead_eur": 44.0}
+
+    def line_at(cost: float) -> str:
+        ch = dict(row, cost_per_booked_call_eur=cost, spend_eur=cost * 2)
+        return next(l for l in friday_brief.suggestions([], [ch], []).splitlines()
+                    if "per booked call" in l)
+
+    cheap = line_at(week / 2)
+    middling = line_at((week + month) / 2)
+    dear = line_at(month * 5)
+
+    check("a cheap booked call is covered in the first week",
+          "first week" in cheap, cheap)
+    check("a middling one is covered within the first month",
+          "first paid month" in middling and "first week" not in middling,
+          middling)
+    check("an expensive one says the channel does not pay for itself",
+          "does not pay for itself" in dear, dear)
+    check("the expensive case never claims a week covers it",
+          "first week" not in dear and "first paid month" not in dear, dear)
+    check("the claim shows the rate it converted at",
+          "USD/EUR" in cheap)
+
+
 # ---------------------------------------------------------------------------
 # 6. No secrets, no em dashes, no AI-flavoured phrasing
 # ---------------------------------------------------------------------------
@@ -393,6 +433,7 @@ def main() -> int:
     check_forbidden_project()
     markets, channels, content = check_seed_and_views()
     check_brief(markets, channels, content)
+    check_paid_channel_claim()
     check_no_secrets()
     check_voice()
 

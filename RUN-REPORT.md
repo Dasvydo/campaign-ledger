@@ -84,7 +84,7 @@ mirror with an identical full-table diff (9 tables, 91 rows). The brief renders.
 | `tools/validate_sql.py` | offline parse-check |
 | `tests/schema_drift.py` | column drift audit: campaign_db against the schema |
 | `tests/sqlite_mirror.py` | runs the committed `.sql` on in-memory SQLite |
-| `tests/run_local_proof.py` | the QA gate as code: 51 checks, all passing |
+| `tests/run_local_proof.py` | the QA gate as code: 56 checks, all passing |
 | `briefs/2026-09-25.md` | an example brief from seed data, labelled as such in its first line |
 
 Three design decisions worth surfacing, because they are the ones that would be
@@ -110,7 +110,7 @@ is a check for this.
 
 ## The QA gate, line by line
 
-Run `python3 tests/run_local_proof.py` to reproduce. 51 checks, 0 failures.
+Run `python3 tests/run_local_proof.py` to reproduce. 56 checks, 0 failures.
 (46 on 2026-09-06; the drift audit added five on 2026-09-09.)
 
 ### [x] Migrations parse (validate SQL syntax locally; do not connect)
@@ -431,6 +431,6 @@ ledger project, and leave the guard in place. BLOCKED.md B-2.
 ```bash
 pip install -r requirements.txt     # sqlglot, test-only
 python3 tools/validate_sql.py       # parse-check the migrations
-python3 tests/run_local_proof.py    # 51 checks, the whole QA gate
+python3 tests/run_local_proof.py    # 56 checks, the whole QA gate
 python3 src/friday_brief.py --local --no-write   # see the brief render
 ```

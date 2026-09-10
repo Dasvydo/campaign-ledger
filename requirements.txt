@@ -7,10 +7,10 @@
 # sqlglot is test-only. tools/validate_sql.py parses the three migrations with
 # its Postgres dialect so a syntax error is caught before anything is pasted
 # into a SQL editor, and tests/run_local_proof.py asserts that parse as one of
-# its 51 checks. Without it that single check errors and the gate reports 50/51.
+# its 56 checks. Without it that single check errors and the gate reports 55/56.
 #
 #   pip install -r requirements.txt
-#   python3 tests/run_local_proof.py     # 51 checks, the whole offline QA gate
+#   python3 tests/run_local_proof.py     # 56 checks, the whole offline QA gate
 #
 # Pinned to the version the QA gate was last proved against (RUN-REPORT.md).
 sqlglot>=30.18.0
