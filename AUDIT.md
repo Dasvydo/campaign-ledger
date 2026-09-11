@@ -18,7 +18,7 @@ What I actually checked, and what came back:
 | `supabase-architect` skill notes | no such skill installed. `/root/.claude/skills/` holds only `session-start-hook` and one synced skill bundle, neither Supabase-related |
 | The `outreach-engine` repo (where the DSD tables are described) | **out of bounds for this session.** The batch brief forbids reading sibling repos, so I did not open it. This is the single biggest reason the project ref cannot be confirmed here |
 | Session environment variables | `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are both set - see the finding below |
-| Reachability of `oqpeebtwtikdzorgouxd.supabase.co` | one unauthenticated request to the REST root returned HTTP `000` (no connection - egress blocked / host not resolvable from this container). No project was connected to, no credential was sent, no data was read |
+| Reachability of `yheilbuunzdugfnermfb.supabase.co` | one unauthenticated request to the REST root returned HTTP `000` (no connection - egress blocked / host not resolvable from this container). No project was connected to, no credential was sent, no data was read |
 
 ### Finding 1 - the ambient credentials in this session point at the FORBIDDEN project
 
@@ -42,10 +42,10 @@ Consequences, all of which are handled in the build:
 
 ### Finding 2 - the lead-pipeline project ref is unconfirmed (resolved 2026-09-06)
 
-The spec names `oqpeebtwtikdzorgouxd` as the existing lead-pipeline project that
+The spec names `yheilbuunzdugfnermfb` as the existing lead-pipeline project that
 holds the DSD LinkedIn discovery data. Nothing inside the build session could
 confirm that project exists, that Dovy owns it, or that it is the DSD project.
-**Dovy confirmed it on 2026-09-06**: the ledger lives in `oqpeebtwtikdzorgouxd`,
+**Dovy confirmed it on 2026-09-06**: the ledger lives in `yheilbuunzdugfnermfb`,
 schema `campaign`. The paragraphs below describe the position at build time.
 
 Per the batch brief, the migration is written **against that named project, in a
@@ -121,7 +121,7 @@ set. `BLOCKED.md` B-4 is resolved.
 
 | Decision | Because |
 |---|---|
-| Migration targets `oqpeebtwtikdzorgouxd`, schema `campaign` | spec's named target; unconfirmed at build time, confirmed by Dovy 2026-09-06 |
+| Migration targets `yheilbuunzdugfnermfb`, schema `campaign` | spec's named target; unconfirmed at build time, confirmed by Dovy 2026-09-06 |
 | No DSD foreign key, only a nullable `dsd_company_id` | DSD table shape unreadable from here |
 | Reply sentiment enum is exactly six values | spec instruction at build time; since 2026-09-06 the six are the outreach engine's set (see section 3) |
 | Client reads `SUPABASE_SERVICE_KEY`, refuses `kngcxwcybozgqgnoweyt` | ambient session credentials point at the product DB |

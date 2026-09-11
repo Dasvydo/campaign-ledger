@@ -7,22 +7,46 @@ Status on 2026-09-06: **B-1 and B-4 resolved** by Dovy's decisions (see
 
 ---
 
-## B-1 - Target Supabase project could not be confirmed - RESOLVED 2026-09-06
+## B-1 - Target Supabase project could not be confirmed - REOPENED, then CLOSED 2026-09-11
 
-**Resolution:** Dovy confirmed the ledger lives in Supabase project
-`oqpeebtwtikdzorgouxd`, schema `campaign`. The migrations were already written
-against that project; the "confirm before running" warnings in the migration
-headers, `README.md` and `.env.example` now state it as confirmed. Nothing else
-changed. The migrations are still Dovy's to run (global rule 3).
+**Closed for real 2026-09-11.** The ledger lives in Supabase project
+`yheilbuunzdugfnermfb`, schema `campaign`. Created by Dovy on 2026-09-10, all
+three migrations applied 2026-09-11: 9 tables, 98 columns, 15 enums, 3 views,
+RLS enabled on all 9 tables with zero policies, and no grant to `anon` or
+`authenticated`. A browser holding the publishable key gets `42501 permission
+denied for schema campaign`.
+
+**Why it reopened, which is the part worth reading.** From 2026-09-06 this file
+recorded B-1 as resolved on the strength of a verbal confirmation, and every
+document in six repositories then asserted `oqpeebtwtikdzorgouxd` as fact - 75
+times, including two live guards that refuse to run against the wrong ledger. On
+2026-09-11 a DNS lookup was finally run against it:
+
+    oqpeebtwtikdzorgouxd.supabase.co   DOES NOT RESOLVE
+    kngcxwcybozgqgnoweyt.supabase.co   resolves (the product database)
+
+**That project had never existed.** The original entry below asked for exactly
+this check and was closed without it - `AUDIT.md` even records an unauthenticated
+request returning HTTP `000` and reads it as egress blocking rather than a
+missing host. It was both, and the second reading was the correct one.
+
+Nothing was lost, because nothing had been run. But the ledger was one careless
+`SUPABASE_URL` away from being created inside the live product database instead,
+and the only thing that would have stopped it is the guard in `campaign_db.py`
+that refuses the product ref - written for a different reason entirely.
+
+**The lesson, cheap to apply:** a project ref is checkable in one second
+(`getent hosts <ref>.supabase.co`). A confirmation is not a verification. Run the
+lookup before writing a ref into 75 places.
 
 The original entry, for the record:
 
-**Missing:** any way to confirm that project `oqpeebtwtikdzorgouxd` exists, is
+**Missing:** any way to confirm that project `yheilbuunzdugfnermfb` exists, is
 Dovy's, and is the one holding the DSD LinkedIn discovery data. No `supabase/`
 directory on the container, no `.env` in this repo, no `supabase-architect` skill
 notes, and `outreach-engine` is out of bounds for this session.
 
-**What I did:** wrote all three migrations against `oqpeebtwtikdzorgouxd`, schema
+**What I did:** wrote all three migrations against `yheilbuunzdugfnermfb`, schema
 `campaign`, exactly as the spec names it. Did **not** guess an alternative and did
 **not** fall back to the product project.
 

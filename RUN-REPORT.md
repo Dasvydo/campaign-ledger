@@ -57,7 +57,7 @@ What changed for it:
   rejects a wrong-casing value (`INTERESTED`) as well as a made-up one.
 - `AUDIT.md` section 3 and `BLOCKED.md` B-4 updated; B-4 is resolved.
 
-**4. The ledger lives in Supabase project `oqpeebtwtikdzorgouxd`, schema
+**4. The ledger lives in Supabase project `yheilbuunzdugfnermfb`, schema
 `campaign`.** Confirmed by Dovy. `BLOCKED.md` B-1 is resolved. The migration
 headers, `README.md`, `.env.example` and `AUDIT.md` finding 2 now say confirmed
 instead of "confirm before running". The migrations remain Dovy's to run.
@@ -376,7 +376,7 @@ charges in USD, this column will silently be wrong by the exchange rate.
 Steps 1 and 6 are done as of 2026-09-06 and are left in place so the numbering
 matches earlier notes.
 
-1. **Confirm the target project.** Done: `oqpeebtwtikdzorgouxd` is the
+1. **Confirm the target project.** Done: `yheilbuunzdugfnermfb` is the
    lead-pipeline / DSD project, confirmed 2026-09-06. Still check the ref in
    the URL bar before running anything, and never run against the product
    project.

@@ -46,7 +46,10 @@ The ledger goes in the **lead-pipeline Supabase project**, in a **new schema
 called `campaign`**. That project already holds the DSD LinkedIn discovery data,
 which keeps the outreach story in one place.
 
-That project is **`oqpeebtwtikdzorgouxd`, confirmed by Dovy on 2026-09-06**
+That project is **`yheilbuunzdugfnermfb`, created by Dovy on 2026-09-10 and verified reachable
+the same day**. It replaced `oqpeebtwtikdzorgouxd`, which this file asserted as
+confirmed from 2026-09-06 until 2026-09-10, when a DNS lookup showed it had
+never existed. See BLOCKED.md B-1
 (`BLOCKED.md` B-1, resolved). Still check the project ref in the URL bar before
 running anything.
 

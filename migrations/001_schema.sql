@@ -2,10 +2,11 @@
 -- campaign-ledger / 001_schema.sql
 -- Schema, enums, tables, indexes for the DoviLoop Teams campaign ledger.
 --
--- TARGET PROJECT: oqpeebtwtikdzorgouxd  (the lead-pipeline / DSD project)
+-- TARGET PROJECT: yheilbuunzdugfnermfb  (the lead-pipeline / DSD project)
 -- TARGET SCHEMA:  campaign               (new schema, created below)
 --
--- The target project ref above was CONFIRMED by Dovy on 2026-09-06 (BLOCKED.md
+-- The ref above is the project Dovy created on 2026-09-10, after the ref this
+-- file previously named was found never to have existed (BLOCKED.md
 -- B-1, resolved). Still check the project ref in the URL bar before running.
 --
 -- This must NEVER be run against the PRODUCT database (the Frankfurt project).
